@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Family Vault - ઈન્સ્ટન્ટ દસ્તાવેજ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #121212; color: #fff; min-height: 100vh; display: flex; flex-direction: column; padding: 12px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    h1 { font-size: 1.15rem; color: #FF5252; }
+
+    .top-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+    .action-btn { flex: 1; background: #2A2A2A; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; font-size: 0.9rem; }
+    .action-btn.primary { background: #D32F2F; border: none; }
+
+    .search-box { width: 100%; background: #1E1E1E; border: 1px solid #333; color: #fff; padding: 12px 14px; border-radius: 8px; font-size: 1rem; margin-bottom: 8px; }
+    .search-box:focus { border-color: #00E676; outline: none; }
+
+    .voice-bar { margin-bottom: 12px; }
+    .voice-btn { width: 100%; background: #1F3A24; border: 1px solid #00E676; color: #00E676; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+    .voice-btn:active { background: #00E676; color: #000; }
+
+    .member-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; scrollbar-width: none; }
+    .member-tab { background: #222; border: 1px solid #333; color: #aaa; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; white-space: nowrap; cursor: pointer; }
+    .member-tab.active { background: #FF5252; color: #fff; border-color: #FF5252; }
+
+    .doc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-grow: 1; align-content: start; }
+    .doc-item { background: #1C1C1C; border: 1px solid #333; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; min-height: 100px; }
+    .doc-item:active { transform: scale(0.98); border-color: #00E676; }
+    .doc-person { font-size: 0.75rem; color: #00E676; font-weight: 600; text-transform: uppercase; }
+    .doc-name { font-size: 0.95rem; font-weight: bold; margin: 4px 0; }
+    .doc-time { font-size: 0.7rem; color: #777; }
+
+    /* Viewer Modal */
+    #viewerModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; display: none; flex-direction: column; z-index: 9999; }
+    #viewerImage { width: 100%; height: calc(100vh - 60px); object-fit: contain; }
+    .close-bar { height: 60px; background: #111; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; }
+    .btn-close { background: #FF5252; border: none; color: #fff; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    /* Wizard Modal */
+    #wizardModal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); display: none; flex-direction: column; z-index: 10000; padding: 16px; overflow-y: auto; }
+    .wizard-card { background: #1E1E1E; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; max-width: 500px; margin: auto; width: 100%; }
+    .wizard-preview { width: 100%; height: 220px; object-fit: contain; background: #000; border-radius: 8px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .chip { background: #2A2A2A; border: 1px solid #444; color: #ddd; padding: 6px 12px; border-radius: 16px; font-size: 0.8rem; cursor: pointer; }
+    .chip.selected { background: #00E676; color: #000; font-weight: bold; border-color: #00E676; }
+    .wizard-input { width: 100%; background: #2A2A2A; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 6px; font-size: 0.95rem; }
+    .wizard-btns { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-wizard { flex: 1; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; }
+    .btn-save { background: #00E676; color: #000; }
+    .btn-skip { background: #444; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>⚡ SMART FAMILY VAULT</h1>
+    <span id="docCount" style="font-size: 0.8rem; color: #aaa;">0 દસ્તાવેજ</span>
+  </header>
+
+  <div class="top-actions">
+    <label class="action-btn primary">
+      📸 કેમેરા / ગેલેરીમાંથી ઉમેરો
+      <input type="file" id="bulkInput" multiple accept="image/*" style="display: none;">
+    </label>
+    <button class="action-btn" onclick="clearAllData()" style="max-width: 80px; color: #bbb;">રીસેટ</button>
+  </div>
+
+  <input type="text" id="searchInput" class="search-box" placeholder="🔍 દા.ત. વોટર, certy, આવક, RC...">
+
+  <div class="voice-bar">
+    <button class="voice-btn" id="voiceBtn">🎙️ બોલીને શોધો (દા.ત. "આવકનું certy")</button>
+  </div>
+
+  <div class="member-tabs" id="memberTabs">
+    <div class="member-tab active" onclick="filterByMember('all')">બધા સભ્યો</div>
+  </div>
+
+  <div class="doc-grid" id="docGrid"></div>
+
+  <!-- Wizard Modal for Fast Tagging -->
+  <div id="wizardModal">
+    <div class="wizard-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="color:#00E676; font-size:1rem;" id="wizardProgress">ફોટો ટેગ કરો (1/5)</h3>
+        <button onclick="closeWizard()" style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+
+      <img id="wizardImg" class="wizard-preview" alt="Preview">
+
+      <div>
+        <label style="font-size:0.8rem; color:#aaa;">કોનો દસ્તાવેજ છે? (સભ્ય)</label>
+        <div class="chip-group" id="memberChips">
+          <div class="chip selected" onclick="selectMemberChip(this, 'હું પોતે')">હું પોતે</div>
+          <div class="chip" onclick="selectMemberChip(this, 'પત્ની')">પત્ની</div>
+          <div class="chip" onclick="selectMemberChip(this, 'દીકરો')">દીકરો</div>
+          <div class="chip" onclick="selectMemberChip(this, 'સામાન્ય')">સામાન્ય/ગાડી</div>
+        </div>
+        <input type="text" id="customMemberInput" class="wizard-input" placeholder="અથવા બીજું નામ લખો..." style="margin-top:6px;">
+      </div>
+
+      <div>
+        <label style="font-size:0.8rem; color:#aaa;">કયો દસ્તાવેજ છે? (ડોક્યુમેન્ટ)</label>
+        <div class="chip-group" id="docChips">
+          <div class="chip selected" onclick="selectDocChip(this, 'આધાર કાર્ડ')">આધાર</div>
+          <div class="chip" onclick="selectDocChip(this, 'ચૂંટણી કાર્ડ')">ચૂંટણી કાર્ડ</div>
+          <div class="chip" onclick="selectDocChip(this, 'ડ્રાઇવિંગ લાયસન્સ')">લાયસન્સ</div>
+          <div class="chip" onclick="selectDocChip(this, 'RC બુક')">RC બુક</div>
+          <div class="chip" onclick="selectDocChip(this, 'પાન કાર્ડ')">પાન કાર્ડ</div>
+          <div class="chip" onclick="selectDocChip(this, 'આવકનો દાખલો')">આવક દાખલો</div>
+          <div class="chip" onclick="selectDocChip(this, 'આયુષ્માન કાર્ડ')">આયુષ્માન</div>
+        </div>
+        <input type="text" id="customDocInput" class="wizard-input" placeholder="અથવા બીજું નામ (દા.ત. રિઝલ્ટ, લાઈટબિલ)..." style="margin-top:6px;">
+      </div>
+
+      <div class="wizard-btns">
+        <button class="btn-wizard btn-skip" onclick="skipWizardItem()">છોડી દો</button>
+        <button class="btn-wizard btn-save" onclick="saveWizardItem()">સેવ અને આગળ ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Viewer -->
+  <div id="viewerModal">
+    <div class="close-bar">
+      <span id="viewerTitle" style="font-weight: bold; color: #fff;"></span>
+      <button class="btn-close" onclick="closeViewer()">બંધ કરો (X)</button>
+    </div>
+    <img id="viewerImage" alt="Document Preview">
+  </div>
+
+  <script>
+    const NOISE_WORDS = [
+      "ફોટો", "તસવીર", "છબી", "પ્રિન્ટ", "ઝેરોક્ષ", "નકલ", "કાર્ડ", "બુક", "ઓળખપત્ર",
+      "photo", "image", "pic", "card", "copy", "doc", "document", "file", "xerox", "nu", "no", "ni", "નું", "નો", "ની"
+    ];
+
+    const SYNONYM_CLUSTERS = [
+      { id: "cert", terms: ["પ્રમાણપત્ર", "પ્રમાણ", "સર્ટિ", "દાખલો", "દાખલા", "પુરાવો", "certy", "certificate", "proof"] },
+      { id: "voter", terms: ["ચૂંટણી", "મતદાન", "વોટર", "election", "voter", "epic", "chunav"] },
+      { id: "aadhaar", terms: ["આધાર", "aadhar", "aadhaar", "uid", "adhar"] },
+      { id: "vehicle_rc", terms: ["rc", "આરસી", "ગાડી", "car", "bike", "vehicle", "વાહન", "મોટર"] },
+      { id: "license", terms: ["લાયસન્સ", "લાઇસન્સ", "ડ્રાઇવિંગ", "driving", "license", "licence", "dl"] },
+      { id: "pan", terms: ["પાન", "pan", "pancard", "પાનકાર્ડ"] },
+      { id: "finance", terms: ["આવક", "income", "લાઈટબિલ", "લાઈટ બિલ", "વીજળી", "પાસબુક", "ચેક", "ટેક્સ", "વેરો"] },
+      { id: "health", terms: ["આયુષ્માન", "pmjay", "medical", "દવા", "હોસ્પિટલ", "હેલ્થ", "રિપોર્ટ", "insurance"] },
+      { id: "education", terms: ["માર્કશીટ", "રિઝલ્ટ", "result", "marksheet", "ધોરણ", "ડિગ્રી", "degree", "lc", "leaving"] }
+    ];
+
+    let db;
+    let allDocuments = [];
+    let currentFilter = 'all';
+    let wakeLock = null;
+
+    // Wizard Queue
+    let wizardQueue = [];
+    let wizardIndex = 0;
+    let currentSelectedMember = "હું પોતે";
+    let currentSelectedDoc = "આધાર કાર્ડ";
+
+    const request = indexedDB.open("SmartFamilyVaultDB", 2);
+    request.onupgradeneeded = (e) => {
+      db = e.target.result;
+      if (!db.objectStoreNames.contains("docs")) {
+        const store = db.createObjectStore("docs", { keyPath: "id", autoIncrement: true });
+        store.createIndex("member", "member", { unique: false });
+      }
+    };
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      loadAllDocs();
+    };
+
+    function loadAllDocs() {
+      const tx = db.transaction("docs", "readonly");
+      const store = tx.objectStore("docs");
+      const req = store.getAll();
+      req.onsuccess = () => {
+        allDocuments = req.result;
+        updateMemberTabs();
+        renderGrid();
+      };
+    }
+
+    // Capture Files & Start Wizard
+    document.getElementById("bulkInput").addEventListener("change", function(e) {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+
+      wizardQueue = [];
+      wizardIndex = 0;
+
+      let loadedCount = 0;
+      files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          wizardQueue.push({
+            fileName: file.name,
+            data: evt.target.result
+          });
+          loadedCount++;
+          if (loadedCount === files.length) {
+            startWizard();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function startWizard() {
+      if (!wizardQueue.length) return;
+      wizardIndex = 0;
+      document.getElementById("wizardModal").style.display = "flex";
+      showWizardStep();
+    }
+
+    function showWizardStep() {
+      if (wizardIndex >= wizardQueue.length) {
+        closeWizard();
+        loadAllDocs();
+        return;
+      }
+      const item = wizardQueue[wizardIndex];
+      document.getElementById("wizardProgress").innerText = `ફોટો ટેગ કરો (${wizardIndex + 1}/${wizardQueue.length})`;
+      document.getElementById("wizardImg").src = item.data;
+      document.getElementById("customMemberInput").value = "";
+      document.getElementById("customDocInput").value = "";
+    }
+
+    function selectMemberChip(el, name) {
+      document.querySelectorAll("#memberChips .chip").forEach(c => c.classList.remove("selected"));
+      el.classList.add("selected");
+      currentSelectedMember = name;
+      document.getElementById("customMemberInput").value = "";
+    }
+
+    function selectDocChip(el, title) {
+      document.querySelectorAll("#docChips .chip").forEach(c => c.classList.remove("selected"));
+      el.classList.add("selected");
+      currentSelectedDoc = title;
+      document.getElementById("customDocInput").value = "";
+    }
+
+    function saveWizardItem() {
+      const customMem = document.getElementById("customMemberInput").value.trim();
+      const customDoc = document.getElementById("customDocInput").value.trim();
+
+      const member = customMem || currentSelectedMember;
+      const docTitle = customDoc || currentSelectedDoc;
+      const currentItem = wizardQueue[wizardIndex];
+
+      const tx = db.transaction("docs", "readwrite");
+      const store = tx.objectStore("docs");
+      store.add({
+        member: member,
+        title: docTitle,
+        fileName: currentItem.fileName,
+        data: currentItem.data,
+        createdAt: Date.now()
+      });
+
+      tx.oncomplete = () => {
+        wizardIndex++;
+        showWizardStep();
+      };
+    }
+
+    function skipWizardItem() {
+      wizardIndex++;
+      showWizardStep();
+    }
+
+    function closeWizard() {
+      document.getElementById("wizardModal").style.display = "none";
+      wizardQueue = [];
+      loadAllDocs();
+    }
+
+    // Match Engine
+    function cleanTokens(text) {
+      let t = text.toLowerCase();
+      NOISE_WORDS.forEach(noise => { t = t.replaceAll(noise, " "); });
+      return t.split(/[\s_-]+/).filter(w => w.trim().length > 0);
+    }
+
+    function smartMatch(doc, searchQuery) {
+      if (!searchQuery.trim()) return true;
+      const searchTokens = cleanTokens(searchQuery);
+      const titleTokens = cleanTokens(doc.title + " " + doc.member);
+
+      return searchTokens.some(sToken => {
+        if (titleTokens.some(tToken => tToken.includes(sToken) || sToken.includes(tToken))) return true;
+        for (const cluster of SYNONYM_CLUSTERS) {
+          if (cluster.terms.some(term => term.includes(sToken) || sToken.includes(term))) {
+            if (titleTokens.some(tToken => cluster.terms.some(term => term.includes(tToken) || tToken.includes(term)))) {
+              return true;
+            }
+          }
+        }
+        return false;
+      });
+    }
+
+    function updateMemberTabs() {
+      const members = ["all", ...new Set(allDocuments.map(d => d.member))];
+      const tabsContainer = document.getElementById("memberTabs");
+      tabsContainer.innerHTML = "";
+
+      members.forEach(m => {
+        const tab = document.createElement("div");
+        tab.className = `member-tab ${currentFilter === m ? 'active' : ''}`;
+        tab.innerText = m === 'all' ? 'બધા સભ્યો' : m;
+        tab.onclick = () => filterByMember(m);
+        tabsContainer.appendChild(tab);
+      });
+    }
+
+    function filterByMember(member) {
+      currentFilter = member;
+      updateMemberTabs();
+      renderGrid();
+    }
+
+    function renderGrid() {
+      const query = document.getElementById("searchInput").value;
+      const grid = document.getElementById("docGrid");
+      grid.innerHTML = "";
+
+      const filtered = allDocuments.filter(d => {
+        const matchMember = (currentFilter === 'all' || d.member === currentFilter);
+        const matchSearch = smartMatch(d, query);
+        return matchMember && matchSearch;
+      });
+
+      document.getElementById("docCount").innerText = `${filtered.length} દસ્તાવેજ`;
+
+      filtered.forEach(doc => {
+        const item = document.createElement("div");
+        item.className = "doc-item";
+        item.onclick = () => openDocViewer(doc);
+        item.innerHTML = `
+          <div>
+            <div class="doc-person">${doc.member}</div>
+            <div class="doc-name">${doc.title}</div>
+          </div>
+          <div class="doc-time">ટેપ કરો ➔</div>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    document.getElementById("searchInput").addEventListener("input", renderGrid);
+
+    // Fullscreen Viewer with WakeLock
+    async function openDocViewer(doc) {
+      document.getElementById("viewerTitle").innerText = `${doc.member} - ${doc.title}`;
+      document.getElementById("viewerImage").src = doc.data;
+      document.getElementById("viewerModal").style.display = "flex";
+
+      if ('wakeLock' in navigator) {
+        try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+      }
+    }
+
+    function closeViewer() {
+      document.getElementById("viewerModal").style.display = "none";
+      document.getElementById("viewerImage").src = "";
+      if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    }
+
+    function clearAllData() {
+      if (confirm("બધા જ સેવ કરેલા દસ્તાવેજો હટાવવા છે?")) {
+        const tx = db.transaction("docs", "readwrite");
+        tx.objectStore("docs").clear();
+        tx.oncomplete = () => loadAllDocs();
+      }
+    }
+
+    // Voice Search
+    const voiceBtn = document.getElementById("voiceBtn");
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      const recognizer = new SpeechRecognition();
+      recognizer.lang = "gu-IN";
+
+      voiceBtn.onclick = () => {
+        voiceBtn.innerText = "🎙️ સાંભળી રહ્યું છે...";
+        recognizer.start();
+      };
+
+      recognizer.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("searchInput").value = transcript;
+        renderGrid();
+
+        const matched = allDocuments.filter(d => smartMatch(d, transcript));
+        if (matched.length === 1) {
+          openDocViewer(matched[0]);
+        }
+
+        voiceBtn.innerText = `શોધ્યું: "${transcript}"`;
+        setTimeout(() => {
+          voiceBtn.innerText = "🎙️ બોલીને શોધો (દા.ત. 'આવકનું certy')";
+        }, 3000);
+      };
+
+      recognizer.onerror = () => {
+        voiceBtn.innerText = "🎙️ ફરી પ્રયાસ કરો";
+        setTimeout(() => {
+          voiceBtn.innerText = "🎙️ બોલીને શોધો (દા.ત. 'આવકનું certy')";
+        }, 2000);
+      };
+    } else {
+      voiceBtn.style.display = "none";
+    }
+  </script>
+</body>
+</html>
